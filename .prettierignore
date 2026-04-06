@@ -1,0 +1,12 @@
+.next
+.history
+out
+build
+node_modules
+coverage
+.vercel
+*.min.js
+*.min.css
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
