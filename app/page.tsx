@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
-import { fetchNewsData } from '@/app/api/news/route';
+import { fetchNewsPageData } from '@/app/api/news/route';
+import { getDailyTrends } from '@/app/lib/trends';
 import HomeContent from './Home';
 
 export const metadata: Metadata = {
@@ -9,6 +10,15 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const newsList = await fetchNewsData();
-  return <HomeContent newsList={newsList} />;
+  const { newsList, lastSyncedAt, hot24h, weeklyPicks } = await fetchNewsPageData();
+  const trends = await getDailyTrends();
+  return (
+    <HomeContent
+      newsList={newsList}
+      lastSyncedAt={lastSyncedAt}
+      trends={trends}
+      hot24h={hot24h}
+      weeklyPicks={weeklyPicks}
+    />
+  );
 }

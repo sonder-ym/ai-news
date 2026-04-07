@@ -1,33 +1,17 @@
-import { createClient, type Client } from '@libsql/client';
 import { NextResponse } from 'next/server';
-import { maybeSyncNewsFeeds, selectAllNews } from '@/app/lib/news/news-sync';
+import {
+  getLastNewsSyncAt,
+  maybeSyncNewsFeeds,
+  selectAllNews,
+  selectHot24hNews,
+  selectWeeklyTopNews,
+} from '@/app/lib/news/pipeline/news-sync';
+import { getDbClient, resolveTursoUrl } from '@/app/lib/turso-client';
+import type { NewsItem } from '@/app/types/news';
 
 export type { NewsItem } from '@/app/types/news';
 
-let client: Client;
-
-/** 兼容 Turso 文档中的 `TURSO_DATABASE_URL` 与项目里常用的 `TURSO_URL` */
-function resolveTursoUrl() {
-  return process.env.TURSO_URL ?? '';
-}
-
-function resolveTursoToken() {
-  return process.env.TURSO_TOKEN;
-}
-
-export const getDbClient = () => {
-  const url = resolveTursoUrl();
-  if (!url) {
-    throw new Error('TURSO_DATABASE_URL or TURSO_URL is not configured');
-  }
-  if (!client) {
-    client = createClient({
-      url,
-      authToken: resolveTursoToken(),
-    });
-  }
-  return client;
-};
+export { getDbClient } from '@/app/lib/turso-client';
 
 export const fetchNewsData = async () => {
   if (!resolveTursoUrl()) {
@@ -37,6 +21,31 @@ export const fetchNewsData = async () => {
   await maybeSyncNewsFeeds(db);
   return selectAllNews(db);
 };
+
+/** 首页：列表 + 上次同步时间（毫秒时间戳） */
+export async function fetchNewsPageData(): Promise<{
+  newsList: NewsItem[];
+  lastSyncedAt: number | null;
+  hot24h: NewsItem[];
+  weeklyPicks: NewsItem[];
+}> {
+  if (!resolveTursoUrl()) {
+    return { newsList: [], lastSyncedAt: null, hot24h: [], weeklyPicks: [] };
+  }
+  const db = getDbClient();
+  await maybeSyncNewsFeeds(db);
+  const [newsList, lastSyncedAt, hot24h] = await Promise.all([
+    selectAllNews(db),
+    getLastNewsSyncAt(db),
+    selectHot24hNews(db, 5),
+  ]);
+  const weeklyPicks = await selectWeeklyTopNews(
+    db,
+    10,
+    hot24h.map((i) => i.id),
+  );
+  return { newsList, lastSyncedAt, hot24h, weeklyPicks };
+}
 
 export async function GET() {
   try {

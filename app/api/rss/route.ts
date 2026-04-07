@@ -25,13 +25,21 @@ export async function GET(request: Request) {
         ? item.url
         : `${origin}${item.url === '#' ? '/' : item.url}`;
       const guid = `${origin}/#item-${item.id}`;
+      const descParts = [
+        item.sourceName ? `来源：${item.sourceName}` : '',
+        item.tags?.length ? `主题：${item.tags.join('、')}` : '',
+        item.summary,
+      ].filter(Boolean);
+      const description = descParts.join('\n\n');
+      const topicCategories =
+        item.tags?.map((t) => `\n      <category>${escapeXml(t)}</category>`).join('') ?? '';
       return `
     <item>
       <title>${escapeXml(item.title)}</title>
       <link>${escapeXml(link || origin)}</link>
       <guid isPermaLink="false">${escapeXml(guid)}</guid>
-      <description>${escapeXml(item.summary)}</description>
-      <category>${escapeXml(item.category)}</category>
+      <description>${escapeXml(description)}</description>
+      <category>${escapeXml(item.category)}</category>${topicCategories}
       <pubDate>${rfc822(item.createdAt)}</pubDate>
     </item>`;
     })
