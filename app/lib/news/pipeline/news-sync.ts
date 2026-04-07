@@ -11,7 +11,9 @@ import { startOfLocalDayMs } from '@/app/lib/news/utils/local-day';
 import { refreshTrendsCache } from '@/app/lib/trends';
 
 /** 距上次成功同步超过此时长才再次拉取 RSS（默认 2 小时） */
-const SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000;
+const SYNC_INTERVAL_MS = process.env.SYNC_INTERVAL_MS
+  ? Number(process.env.SYNC_INTERVAL_MS)
+  : 2 * 60 * 60 * 1000;
 const MS_DAY = 24 * 60 * 60 * 1000;
 const MS_WEEK = 7 * MS_DAY;
 
